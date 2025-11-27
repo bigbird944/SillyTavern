@@ -1,0 +1,17 @@
+{
+    "id": "08be397f-7be9-481f-b0ad-0251970c3bde",
+    "scriptName": "[隐藏][不发送]tableEdit",
+    "findRegex": "/<tableEdit>((?:(?!<tableEdit>).)*?)<\\/tableEdit>/gs",
+    "replaceString": "",
+    "trimStrings": [],
+    "placement": [
+        2
+    ],
+    "disabled": false,
+    "markdownOnly": true,
+    "promptOnly": true,
+    "runOnEdit": true,
+    "substituteRegex": 0,
+    "minDepth": null,
+    "maxDepth": null
+}

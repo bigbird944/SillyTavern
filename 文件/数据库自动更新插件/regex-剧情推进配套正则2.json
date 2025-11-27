@@ -1,0 +1,17 @@
+{
+    "id": "c5285c83-fe21-4216-bcf1-f4677613f6ba",
+    "scriptName": "剧情推进配套正则2",
+    "findRegex": "/以上是用户的[\\s\\S]*$/m",
+    "replaceString": "[hide]",
+    "trimStrings": [],
+    "placement": [
+        1
+    ],
+    "disabled": false,
+    "markdownOnly": true,
+    "promptOnly": true,
+    "runOnEdit": true,
+    "substituteRegex": 0,
+    "minDepth": 1,
+    "maxDepth": null
+}

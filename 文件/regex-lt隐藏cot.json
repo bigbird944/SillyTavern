@@ -1,0 +1,17 @@
+{
+    "id": "b94b14e4-2eb9-41e2-af6f-81815f6fc59a",
+    "scriptName": "LT隐藏cot",
+    "findRegex": "/(.*\\</thinking>\\n|.*\\</thought>\\n|.*\\<content[\\s\\S]*?>\\n*|\\n*\\</content[\\s\\S]*?>|.*```content|<.?--.*?-->\\n*|♕|\\n?<safe.*?>[\\S\\s]*$|\\n?</conversation_review_log>|<Summary>[\\S\\s]*?</Summary>\\n*)/gms",
+    "replaceString": "",
+    "trimStrings": [],
+    "placement": [
+        2
+    ],
+    "disabled": false,
+    "markdownOnly": true,
+    "promptOnly": true,
+    "runOnEdit": true,
+    "substituteRegex": 0,
+    "minDepth": null,
+    "maxDepth": null
+}

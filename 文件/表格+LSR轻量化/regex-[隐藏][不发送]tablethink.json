@@ -1,0 +1,17 @@
+{
+    "id": "589d41d3-63cd-4216-8e65-8c9e796416d6",
+    "scriptName": "[隐藏][不发送]tableThink",
+    "findRegex": "/<tableThink>((?:(?!<tableThink>).)*?)<\\/tableThink>/gs",
+    "replaceString": "",
+    "trimStrings": [],
+    "placement": [
+        2
+    ],
+    "disabled": false,
+    "markdownOnly": true,
+    "promptOnly": true,
+    "runOnEdit": true,
+    "substituteRegex": 0,
+    "minDepth": null,
+    "maxDepth": null
+}

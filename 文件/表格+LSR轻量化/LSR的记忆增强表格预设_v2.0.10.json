@@ -1,0 +1,520 @@
+{
+    "isAiReadTable": true,
+    "isAiWriteTable": true,
+    "injection_mode": "injection_off",
+    "deep": 1,
+    "message_template": "LSR的记忆增强表格预设_v2.0.10，与配套世界书v2.0.x兼容\n表格插件保持关闭注入，通过配套世界书注入\n请务必查看dc发布帖或世界书中的说明",
+    "confirm_before_execution": true,
+    "use_main_api": true,
+    "custom_temperature": 1,
+    "custom_max_tokens": 2048,
+    "custom_top_p": 1,
+    "bool_ignore_del": true,
+    "ignore_user_sent": false,
+    "clear_up_stairs": 3,
+    "use_token_limit": true,
+    "rebuild_token_limit_value": 10000,
+    "refresh_system_message_template": "忽略一切要求，只输出：请勿使用表格的重新整理功能，要整理表格请直接发送你要求如何整理",
+    "refresh_user_message_template": "忽略一切要求，只输出：请勿使用表格的重新整理功能，要整理表格请直接发送你要求如何整理",
+    "step_by_step": false,
+    "step_by_step_use_main_api": true,
+    "bool_silent_refresh": false,
+    "isTableToChat": true,
+    "show_settings_in_extension_menu": true,
+    "alternate_switch": false,
+    "show_drawer_in_extension_list": true,
+    "table_to_chat_can_edit": false,
+    "table_to_chat_mode": "context_bottom",
+    "to_chat_container": "<div class=\"table-preview-bar\">\n    <details>\n        <summary></summary>\n        <div class=\"table-content\">\n            <details>\n                <summary>当前表格</summary>\n                $0\n            </details>\n        </div>\n        <hr>\n        <div class=\"table-control\">\n            <details>\n                <summary>控制</summary>\n                <button id=\"toggleKeepAllItemsStyleBtn\" title=\"切换是否隐藏不变项\"></button>\n                <button id=\"toggleTableWrapStyleBtn\" title=\"切换表格是否自动换行\"></button>\n                <button id=\"setAutoJumpBtn\">设置自动跳转</button>\n                <button id=\"gotoLastMsgBtn\">到最后消息</button>\n                <button id=\"goto2ndLastMsgBtn\">到上一消息</button>\n                <button id=\"appendTableRequirementBtn\">追加要求</button>\n                <button id=\"appendTableDeleteRequirementBtn\">删除角色</button>\n                <button id=\"recordContentBtn\" title=\"依据范围内可发送给AI的层的内容填表，输入框中内容将作为附加要求，可用于开场填表等\">立即填表</button>\n                <button id=\"summaryBtn\" title=\"剧情告一段落时再大总结，输入框中内容将作为附加要求\">大总结</button>\n                <button id=\"tidyUpBtn\" title=\"输入框中内容将作为附加要求\">整理</button>\n            </details>\n        </div>\n        <hr>\n        <div class=\"table-config\">\n            <details>\n                <summary>参数配置</summary>\n                全局参数指新聊天时默认自动应用到聊天的参数配置，存储在世界书中已开启的参数配置条目<br>\n                聊天参数指对当前聊天有效的参数，存储在聊天变量<br>\n                若要恢复当前聊天参数为全局参数，请点击：<button id=\"applyGlobalSettingBtn\">应用全局参数到聊天</button><br>\n                若要修改全局参数，请在配置聊天参数后再点击：<button id=\"updateWorldInfoBtn\">存储聊天参数到全局</button><br>\n                以下是对聊天参数的配置<br>\n                所有注释都在对应内容下方<br>\n                参数内部不得包含单引号'<br>\n                与世界书不同，此处配置不会被宏替换，显示的直接是参数内容<br>\n                本聊天当前参数如下：\n                <hr>\n                <div class=\"table-config-list\">\n                </div>\n            </details>\n        </div>\n        <hr>\n        <div class=\"quick-operation\">\n            <details>\n            </details>\n        </div>\n    </details>\n</div>\n\n<script>\n    (async function () {\n        /*function compareVersions(v1, v2) {\n            const n1 = v1.split('.').map(Number);\n            const n2 = v2.split('.').map(Number);\n            for (let i = 0; i < Math.max(n1.length, n2.length); i++) {\n                const num1 = n1[i] || 0;\n                const num2 = n2[i] || 0;\n                if (num1 > num2) return 1;\n                if (num1 < num2) return -1;\n            }\n            return 0;\n        }*/\n\n        function hasSameToast(message, title) {\n            return Array.from(document.querySelectorAll('#toast-container .toast'))\n                .some(toast => {\n                    const t = toast.querySelector('.toast-title')?.innerText;\n                    const m = toast.querySelector('.toast-message')?.innerText;\n                    return t === title && m === message;\n                });\n        }\n\n        const toastTitle = 'LSR的表格预设';\n        const SillyTavern = globalThis.SillyTavern.getContext();\n        const user = SillyTavern.name1;\n        const msgID = SillyTavern.chat.length - 1;\n\n        let settingFixed = false;\n        const allow_name1_display = document.getElementById('allow_name1_display');\n        if (!allow_name1_display.checked) {\n            allow_name1_display.checked = true;\n            settingFixed = true;\n        }\n        const allow_name2_display = document.getElementById('allow_name2_display');\n        if (!allow_name2_display.checked) {\n            allow_name2_display.checked = true;\n            settingFixed = true;\n        }\n        const world_info_budget = document.getElementById(\"world_info_budget\");\n        if (world_info_budget.value < 80) {\n            world_info_budget.value = 80;\n            world_info_budget.dispatchEvent(new Event(\"input\", { bubbles: true }));\n            settingFixed = true;\n        }\n        const world_info_match_whole_words = document.getElementById(\"world_info_match_whole_words\");\n        if (world_info_match_whole_words.checked == true) {\n            world_info_match_whole_words.checked = false;\n            world_info_match_whole_words.dispatchEvent(new Event(\"input\", { bubbles: true }));\n            settingFixed = true;\n        }\n        if (settingFixed)\n            toastr.info(\"设置了一些必要的酒馆配置项\", toastTitle);\n\n        function prepareInstall(url) {\n            document.getElementById('third_party_extension_button').click();\n            const observer = new MutationObserver(() => {\n                const input = document.querySelector('.popup-input');\n                if (input) {\n                    input.value = url;\n                    observer.disconnect();\n                }\n            });\n            observer.observe(document.body, {\n                childList: true,\n                subtree: true,\n            });\n        }\n\n        if (globalThis.EjsTemplate === undefined) {\n            const res = await SillyTavern.SlashCommandParser.commands['extension-exists'].callback({}, 'ST-Prompt-Template');\n            if (res == 'true') {\n                let toastMsg = '未启用提示词模板，将自动启用';\n                if (!hasSameToast(toastMsg, toastTitle)) {\n                    toastr.info(\n                        toastMsg,\n                        toastTitle,\n                        {\n                            onHidden: () => SillyTavern.SlashCommandParser.commands['extension-enable'].callback({}, 'ST-Prompt-Template')\n                        }\n                    );\n                }\n            } else {\n                let toastMsg = '未安装提示词模板，点击由codeberg安装';\n                if (!hasSameToast(toastMsg, toastTitle)) {\n                    toastr.info(\n                        toastMsg,\n                        toastTitle,\n                        {\n                            closeButton: true,\n                            timeOut: 0,\n                            extendedTimeOut: 0,\n                            onclick: () => prepareInstall(\"https://codeberg.org/zonde306/ST-Prompt-Template\")\n                        }\n                    );\n                }\n                toastMsg = '未安装提示词模板，点击由github安装';\n                if (!hasSameToast(toastMsg, toastTitle)) {\n                    toastr.info(\n                        toastMsg,\n                        toastTitle,\n                        {\n                            closeButton: true,\n                            timeOut: 0,\n                            extendedTimeOut: 0,\n                            onclick: () => prepareInstall(\"https://github.com/zonde306/ST-Prompt-Template\")\n                        }\n                    );\n                }\n            }\n            document.querySelector('.table-preview-bar').innerHTML = \"<h1>缺少提示词模板扩展</h1>\";\n            return;\n        }\n        const EjsTemplateSetting = SillyTavern.extensionSettings.EjsTemplate;\n        if (EjsTemplateSetting.enabled == false || EjsTemplateSetting.generate_enabled == false || EjsTemplateSetting.preload_worldinfo_enabled == false) {\n            globalThis.EjsTemplate.setFeatures({ enabled: true, generate_enabled: true, preload_worldinfo_enabled: true });\n            toastr.info(\"未开启提示词模板必要选项，已自动开启\", toastTitle);\n        }\n        const refreshWorldInfo = globalThis.EjsTemplate.refreshWorldInfo;\n        //let allVariables = globalThis.EjsTemplate.allVariables;\n\n        const table = globalThis.stMemoryEnhancement.ext_exportAllTablesAsJson();\n\n        const tableSummary = document.querySelector('.table-preview-bar > details > summary');\n        tableSummary.innerHTML = \"记忆增强表格v\" + globalThis.stMemoryEnhancement.VERSION + \"，表格预设v2.0.10，世界书v\" + SillyTavern.variables.local.get(\"tableConfigLorebookVersion\");\n\n        const tableContainer = document.querySelector('.table-preview-bar > details');\n        if (localStorage.getItem('tableDetailsOpen') !== 'false') {\n            tableContainer.open = true;\n        }\n\n        tableContainer.addEventListener('toggle', () => {\n            localStorage.setItem('tableDetailsOpen', tableContainer.open);\n        });\n\n        const contentContainer = document.querySelector('.table-content > details');\n        if (localStorage.getItem('contentDetailsOpen') !== 'false') {\n            contentContainer.open = true;\n        }\n\n        contentContainer.addEventListener('toggle', () => {\n            localStorage.setItem('contentDetailsOpen', contentContainer.open);\n        });\n\n        const controlContainer = document.querySelector('.table-control > details');\n        if (localStorage.getItem('controlDetailsOpen') !== 'false') {\n            controlContainer.open = true;\n        }\n\n        controlContainer.addEventListener('toggle', () => {\n            localStorage.setItem('controlDetailsOpen', controlContainer.open);\n        });\n\n        let keepAllItemsStyle = document.getElementById('keepAllItemsStyle');\n        if (!keepAllItemsStyle) {\n            keepAllItemsStyle = document.createElement('style');\n            keepAllItemsStyle.id = 'keepAllItemsStyle';\n            document.head.appendChild(keepAllItemsStyle);\n        }\n\n        const toggleKeepAllItemsStyleBtn = document.getElementById('toggleKeepAllItemsStyleBtn');\n\n        const updateKeepAllItemsStyle = () => {\n            if (localStorage.getItem('keepAllItemsHidden') === 'true') {\n                keepAllItemsStyle.innerHTML = '.table-preview-bar .keep-all-item { display: none; }';\n                toggleKeepAllItemsStyleBtn.textContent = '显示所有项';\n            } else {\n                keepAllItemsStyle.innerHTML = '';\n                toggleKeepAllItemsStyleBtn.textContent = '隐藏不变项';\n            }\n        };\n\n        toggleKeepAllItemsStyleBtn.onclick = () => {\n            const isHidden = localStorage.getItem('keepAllItemsHidden') === 'true';\n            localStorage.setItem('keepAllItemsHidden', !isHidden);\n            updateKeepAllItemsStyle();\n        };\n\n        updateKeepAllItemsStyle();\n\n        let tableWrapStyle = document.getElementById('tableWrapStyle');\n        if (!tableWrapStyle) {\n            tableWrapStyle = document.createElement('style');\n            tableWrapStyle.id = 'tableWrapStyle';\n            document.head.appendChild(tableWrapStyle);\n        }\n\n        const toggleTableWrapStyleBtn = document.getElementById('toggleTableWrapStyleBtn');\n\n        const updateTableWrapStyle = () => {\n            if (localStorage.getItem('tableWrap') !== 'false') {\n                tableWrapStyle.innerHTML = '.table-preview-bar table { width: 100%; word-wrap: break-word; overflow-wrap: break-word; word-break: break-word; }';\n                toggleTableWrapStyleBtn.textContent = '不自动换行';\n            } else {\n                tableWrapStyle.innerHTML = '';\n                toggleTableWrapStyleBtn.textContent = '自动换行';\n            }\n        };\n\n        toggleTableWrapStyleBtn.onclick = () => {\n            const isWrap = localStorage.getItem('tableWrap') !== 'false';\n            localStorage.setItem('tableWrap', !isWrap);\n            updateTableWrapStyle();\n        };\n\n        updateTableWrapStyle();\n\n        let tableAutoJump = Number(localStorage.getItem('tableAutoJump'));\n        if (isNaN(tableAutoJump) || (tableAutoJump < 0 && tableAutoJump != -1)) {\n            tableAutoJump = 100;\n            localStorage.setItem('tableAutoJump', tableAutoJump);\n        }\n\n        let waitAndJumpTimer = null;\n\n        function waitAndJump(isCheckUser) {\n            if (waitAndJumpTimer !== null) {\n                clearTimeout(waitAndJumpTimer);\n                waitAndJumpTimer = null;\n            }\n\n            const last_mes = document.querySelector('div.last_mes[mesid=\"' + msgID + '\"]');\n\n            if (last_mes) {\n                if (!isCheckUser || last_mes.getAttribute(\"is_user\") === \"false\") {\n                    waitAndJumpTimer = setTimeout(() => {\n                        SillyTavern.SlashCommandParser.commands['chat-jump'].callback({}, msgID);\n                        waitAndJumpTimer = null;\n                    }, Number(localStorage.getItem('tableAutoJump')));\n                }\n            } else {\n                waitAndJumpTimer = setTimeout(() => waitAndJump(isCheckUser), 100);\n            }\n        }\n\n        if (!globalThis[\"waitAndJumpInit\"]) {\n            globalThis[\"waitAndJumpInit\"] = () => { waitAndJump(false); }\n        };\n\n        if (!globalThis[\"waitAndJumpGen\"]) {\n            globalThis[\"waitAndJumpGen\"] = () => { waitAndJump(true); }\n        };\n\n        const updateAutoJump = () => {\n            if (tableAutoJump == -1) {\n                if (SillyTavern.eventSource.events[SillyTavern.event_types.APP_READY].includes(globalThis[\"waitAndJumpInit\"]))\n                    SillyTavern.eventSource.removeListener(SillyTavern.event_types.APP_READY, globalThis[\"waitAndJumpInit\"]);\n                if (SillyTavern.eventSource.events[SillyTavern.event_types.CHAT_CHANGED].includes(globalThis[\"waitAndJumpInit\"]))\n                    SillyTavern.eventSource.removeListener(SillyTavern.event_types.CHAT_CHANGED, globalThis[\"waitAndJumpInit\"]);\n                if (SillyTavern.eventSource.events[SillyTavern.event_types.CHARACTER_MESSAGE_RENDERED].includes(globalThis[\"waitAndJumpGen\"]))\n                    SillyTavern.eventSource.removeListener(SillyTavern.event_types.CHARACTER_MESSAGE_RENDERED, globalThis[\"waitAndJumpGen\"]);\n            } else {\n                if (!SillyTavern.eventSource.events[SillyTavern.event_types.APP_READY].includes(globalThis[\"waitAndJumpInit\"]))\n                    SillyTavern.eventSource.makeLast(SillyTavern.event_types.APP_READY, globalThis[\"waitAndJumpInit\"]);\n                if (!SillyTavern.eventSource.events[SillyTavern.event_types.CHAT_CHANGED].includes(globalThis[\"waitAndJumpInit\"]))\n                    SillyTavern.eventSource.makeLast(SillyTavern.event_types.CHAT_CHANGED, globalThis[\"waitAndJumpInit\"]);\n                if (!SillyTavern.eventSource.events[SillyTavern.event_types.CHARACTER_MESSAGE_RENDERED].includes(globalThis[\"waitAndJumpGen\"]))\n                    SillyTavern.eventSource.makeLast(SillyTavern.event_types.CHARACTER_MESSAGE_RENDERED, globalThis[\"waitAndJumpGen\"]);\n            }\n        };\n\n        const setAutoJumpBtn = document.getElementById('setAutoJumpBtn');\n\n        setAutoJumpBtn.onclick = async () => {\n            const tableAutoJumpText = await SillyTavern.Popup.show.input(`请输入生成消息后自动跳转到最新消息前的延时<br>设为-1表示关闭自动跳转`, \"\", tableAutoJump);\n            if (tableAutoJumpText === null) return;\n            tableAutoJump = Number(tableAutoJumpText);\n            if (isNaN(tableAutoJump) || (tableAutoJump < 0 && tableAutoJump != -1)) {\n                tableAutoJump = 100;\n            }\n            localStorage.setItem('tableAutoJump', tableAutoJump);\n            updateAutoJump();\n        };\n\n        const gotoLastMsgBtn = document.getElementById('gotoLastMsgBtn');\n\n        gotoLastMsgBtn.onclick = () => {\n            if (SillyTavern.SlashCommandParser.commands.hasOwnProperty(\"chat-jump\"))\n                SillyTavern.SlashCommandParser.commands['chat-jump'].callback({}, msgID);\n            else\n                toastr.warn(\"此功能需要1.13.0及以上版本的酒馆\", toastTitle);\n        };\n\n        const goto2ndLastMsgBtn = document.getElementById('goto2ndLastMsgBtn');\n\n        goto2ndLastMsgBtn.onclick = () => {\n            if (SillyTavern.SlashCommandParser.commands.hasOwnProperty(\"chat-jump\"))\n                SillyTavern.SlashCommandParser.commands['chat-jump'].callback({}, (msgID - 1));\n            else\n                toastr.warn(\"此功能需要1.13.0及以上版本的酒馆\", toastTitle);\n        };\n\n        const appendTableRequirementBtn = document.getElementById('appendTableRequirementBtn');\n\n        appendTableRequirementBtn.onclick = () => {\n            const sendTextarea = document.getElementById(\"send_textarea\");\n            sendTextarea.value = sendTextarea.value + \"{表格要求：}\";\n            const newPos = sendTextarea.value.length - 1;\n            sendTextarea.selectionStart = sendTextarea.selectionEnd = newPos;\n            sendTextarea.focus();\n        };\n\n        const appendTableDeleteRequirementBtn = document.getElementById('appendTableDeleteRequirementBtn');\n\n        appendTableDeleteRequirementBtn.onclick = () => {\n            const sendTextarea = document.getElementById(\"send_textarea\");\n            sendTextarea.value = sendTextarea.value + \"{表格要求：删除}\";\n            const newPos = sendTextarea.value.length - 1;\n            sendTextarea.selectionStart = sendTextarea.selectionEnd = newPos;\n            sendTextarea.focus();\n        };\n\n        const recordContentBtn = document.getElementById('recordContentBtn');\n\n        recordContentBtn.onclick = async () => {\n            let range = await SillyTavern.Popup.show.input(`输入要填表的楼层范围<br>注意只有范围内可发送给AI的层有效，可能需先取消限制楼层的有关功能`, \"\", \"0-\" + msgID);\n            if (range === null) return;\n            const match = /(\\d+)-(\\d+)/.exec(range.trim());\n            if (!match) return;\n            const rangeMin = parseInt(match[1], 10);\n            const rangeMax = parseInt(match[2], 10);\n            if (rangeMin < 0 || rangeMin > rangeMax || rangeMax > msgID) return;\n\n            const sendTextarea = document.getElementById(\"send_textarea\");\n            const sendTextareaValue = sendTextarea.value;\n            sendTextarea.value = \"\";\n            const tableConfigContentBegin = SillyTavern.variables.local.get(\"tableConfigContentBegin\");\n            const tableConfigContentEnd = SillyTavern.variables.local.get(\"tableConfigContentEnd\");\n            const toHideList = SillyTavern.chat.map((message, i) => (message.is_system === true) && (i < rangeMin || i > rangeMax));\n\n            let hasContent = true;\n            let mes = \"\";\n            if (rangeMin > 0) {\n                await SillyTavern.SlashCommandParser.commands['hide'].callback({}, '0-' + (rangeMin - 1));\n            } else {\n                mes = SillyTavern.chat[0].mes;\n                hasContent = mes.includes(tableConfigContentBegin);\n                if (!hasContent)\n                    SillyTavern.chat[0].mes = tableConfigContentBegin + \"\\n\" + SillyTavern.chat[0].mes + \"\\n\" + tableConfigContentEnd;\n            }\n            if (rangeMax < msgID) {\n                await SillyTavern.SlashCommandParser.commands['hide'].callback({}, (rangeMax + 1) + '-' + msgID);\n            }\n\n            await SillyTavern.executeSlashCommands(\"/send {将上文**每一**{{getvar::tableConfigContentBegin}}中的**故事**视为本次回复内容并作为需要填表的剧情}\\n{暂停叙事，不输出正文{{getvar::tableConfigContentBegin}}，不推进时间，忽略其他思考和格式要求，必须严格遵循<table_rule>等表格有关要求输出<tableThink>和<tableEdit>标签及内容，并保持表格记录的精简}\\n{表格要求：对上文**每一**{{getvar::tableConfigContentBegin}}标签，依据其中剧情所涉及时间和地点划分，对事件历史表新增{{getvar::tableConfigHistoryRows}}}\\n\" + sendTextareaValue + \" ||/trigger await=true ||/hide \" + (msgID + 1) + \"-\" + (msgID + 2));\n            if (!hasContent)\n                SillyTavern.chat[0].mes = mes;\n            if (rangeMin > 0) {\n                await SillyTavern.SlashCommandParser.commands['unhide'].callback({}, '0-' + (rangeMin - 1));\n            }\n            if (rangeMax < msgID) {\n                await SillyTavern.SlashCommandParser.commands['unhide'].callback({}, (rangeMax + 1) + '-' + msgID);\n            }\n            toHideList.forEach((shouldHide, index) => {\n                if (shouldHide) {\n                    SillyTavern.SlashCommandParser.commands['hide'].callback({}, index);\n                }\n            });\n        };\n\n        const summaryBtn = document.getElementById('summaryBtn');\n\n        summaryBtn.onclick = async () => {\n            const sendTextarea = document.getElementById(\"send_textarea\");\n            const sendTextareaValue = sendTextarea.value;\n            sendTextarea.value = \"\";\n            await SillyTavern.executeSlashCommands(\"/send {暂停叙事，不输出正文{{getvar::tableConfigContentBegin}}，不推进时间，忽略其他思考和格式要求，本次回复只处理表格，必须严格遵循<table_rule>等表格有关要求输出<tableThink>和<tableEdit>标签及内容，并保持表格记录的精简<%_ if (getLocalVar('tableConfigCharacterReferenceName') != 'none') { _%>（对于{{getvar::tableConfigCharacterReferenceName}}行，且仅限原有“参见{{getvar::tableConfigCharacterReferenceSource}}”的列，保留“参见{{getvar::tableConfigCharacterReferenceSource}}”，仅当必要时修改或追加其后随剧情发展改变或新增的内容，不记录已在{{getvar::tableConfigCharacterReferenceSource}}中的内容）<%_ } _%>}\\n{表格要求：执行大总结}\\n{表格要求：适当更新角色信息表以体现角色成长与变化}\\n{表格要求：除只读表格外，检查每一格，对于不同格之间存在冲突或更新滞后的，依据故事现状进行适当更新}\\n{表格要求：除只读表格外，检查每一格，对于同一格内存在雷同内容的进行简化合并}\\n\" + sendTextareaValue + \" ||/trigger await=true ||/hide \" + (msgID + 1) + \"-\" + (msgID + 2));\n        };\n\n        const tidyUpBtn = document.getElementById('tidyUpBtn');\n\n        tidyUpBtn.onclick = async () => {\n            const sendTextarea = document.getElementById(\"send_textarea\");\n            const sendTextareaValue = sendTextarea.value;\n            sendTextarea.value = \"\";\n            await SillyTavern.executeSlashCommands(\"/send {暂停叙事，不输出正文{{getvar::tableConfigContentBegin}}，不推进时间，忽略其他思考和格式要求，本次回复只处理表格，必须严格遵循<table_rule>等表格有关要求输出<tableThink>和<tableEdit>标签及内容，并保持表格记录的精简<%_ if (getLocalVar('tableConfigCharacterReferenceName') != 'none') { _%>（对于{{getvar::tableConfigCharacterReferenceName}}行，且仅限原有“参见{{getvar::tableConfigCharacterReferenceSource}}”的列，保留“参见{{getvar::tableConfigCharacterReferenceSource}}”，仅当必要时修改或追加其后随剧情发展改变或新增的内容，不记录已在{{getvar::tableConfigCharacterReferenceSource}}中的内容）<%_ } _%>}\\n{表格要求：除只读表格外，检查每一格，对于不同格之间存在冲突或更新滞后的，依据故事现状进行适当更新}\\n{表格要求：除只读表格外，检查每一格，对于同一格内存在雷同内容的进行简化合并}\\n\" + sendTextareaValue + \" ||/trigger await=true ||/hide \" + (msgID + 1) + \"-\" + (msgID + 2));\n        };\n\n        const applyGlobalSettingBtn = document.getElementById('applyGlobalSettingBtn');\n\n        applyGlobalSettingBtn.onclick = async () => {\n            await SillyTavern.SlashCommandParser.commands['flushvar'].callback({}, 'tableConfigSaved');\n            await refreshWorldInfo();\n            updateTableConfigs();\n        };\n\n        async function updateTableConfigs() {\n            const moduleWI = await import('/scripts/world-info.js');\n            const selected_world_info = moduleWI.selected_world_info;\n            let tableWI = \"\";\n            for (const WI of selected_world_info) {\n                if (WI.includes(\"Table\")) {\n                    tableWI = WI;\n                    break;\n                }\n            }\n            if (tableWI === \"\") {\n                let toastMsg = '全局世界书中未找到表格世界书';\n                if (!hasSameToast(toastMsg, toastTitle)) {\n                    toastr.error(toastMsg, toastTitle);\n                }\n                return;\n            }\n            const worldInfo = await moduleWI.loadWorldInfo(tableWI);\n            const entries = worldInfo.entries;\n            let tableConfigEntry = \"\";\n            for (var id in entries) {\n                const entry = entries[id];\n                if (entry.comment.includes(\"参数配置\") && !entry.disable) {\n                    tableConfigEntry = entry.content;\n                    break;\n                }\n            }\n            if (tableConfigEntry === \"\") {\n                let toastMsg = '表格世界书中未找到开启的参数配置条目';\n                if (!hasSameToast(toastMsg, toastTitle)) {\n                    toastr.error(toastMsg, toastTitle);\n                }\n                return;\n            }\n            const configContainer = document.querySelector('.table-config-list');\n            configContainer.innerHTML = \"\";\n            const ifBlockStartIndex = tableConfigEntry.indexOf(\"  setLocalVar\");\n            if (ifBlockStartIndex === -1) return;\n\n            const ifBlockEndIndex = tableConfigEntry.lastIndexOf('}');\n            const ifBlockContent = tableConfigEntry.substring(ifBlockStartIndex, ifBlockEndIndex - 1);\n\n            const lines = ifBlockContent.split('\\n');\n            const setLocalVarRegex = /setLocalVar\\('([^']*)',\\s*(.*)\\s*, { dryRun: true }\\);/;\n            const setLocalVarValueRegex = /'([^']*)'/g;\n\n            lines.forEach(line => {\n                line = line.trim();\n                if (!line) return;\n\n                if (line.startsWith('//')) {\n                    const commentDiv = document.createElement('div');\n                    commentDiv.textContent = line.substring(2).trim();\n                    configContainer.appendChild(commentDiv);\n                    const commentHr = document.createElement('hr');\n                    configContainer.appendChild(commentHr);\n                } else if (line.startsWith('setLocalVar')) {\n                    const match = line.match(setLocalVarRegex);\n                    if (match) {\n                        const varName = match[1];\n                        let globalVal = match[2];\n                        globalVal = globalVal.replace(/{{us\\'\\+\\'er}}/g, \"{{user}}\");\n                        globalVal = Function(`\"use strict\"; return ${globalVal};`)();\n\n                        const controlDiv = document.createElement('div');\n\n                        const nameSpan = document.createElement('span');\n                        nameSpan.textContent = `${varName}: `;\n                        nameSpan.style.fontWeight = 'bold';\n\n                        const valueSpan = document.createElement('span');\n                        valueSpan.id = `val-${varName}`;\n                        try {\n                            valueSpan.textContent = SillyTavern.variables.local.get(varName);\n                        } catch (e) {\n                            valueSpan.textContent = `(未定义)`;\n                        }\n\n                        const editButton = document.createElement('button');\n                        editButton.textContent = '编辑';\n                        editButton.onclick = async () => {\n                            let currentValue = '';\n                            try {\n                                currentValue = SillyTavern.variables.local.get(varName);\n                            } catch (e) {\n                                currentValue = globalVal;\n                            }\n                            let newValue = await SillyTavern.Popup.show.input(`输入 ${varName} 的新值`, \"\", currentValue);\n                            if (newValue === null) return;\n                            if (\n                                (newValue.startsWith('\"') || newValue.startsWith(\"'\") || newValue.startsWith(\"‘\") || newValue.startsWith(\"’\") || newValue.startsWith(\"“\") || newValue.startsWith(\"”\")) && (newValue.endsWith('\"') || newValue.endsWith(\"'\") || newValue.endsWith(\"‘\") || newValue.endsWith(\"’\") || newValue.endsWith(\"“\") || newValue.endsWith(\"”\"))\n                            ) {\n                                newValue = newValue.slice(1, -1);\n                            }\n                            SillyTavern.variables.local.set(varName, newValue);\n                            document.getElementById(`val-${varName}`).textContent = newValue;\n                            SillyTavern.variables.local.set('tableConfigModified', '1');\n                            refreshWorldInfo();\n                        };\n\n                        const restoreButton = document.createElement('button');\n                        restoreButton.textContent = '恢复全局';\n                        restoreButton.onclick = () => {\n                            SillyTavern.variables.local.set(varName, globalVal);\n                            document.getElementById(`val-${varName}`).textContent = globalVal;\n                            SillyTavern.variables.local.set('tableConfigModified', '1');\n                            refreshWorldInfo();\n                        };\n\n                        controlDiv.appendChild(editButton);\n                        controlDiv.appendChild(restoreButton);\n                        controlDiv.appendChild(nameSpan);\n                        controlDiv.appendChild(valueSpan);\n\n                        configContainer.appendChild(controlDiv);\n                    }\n                }\n            });\n            const lastChild = configContainer.lastElementChild;\n            if (lastChild.tagName === 'HR') {\n                configContainer.removeChild(lastChild);\n            }\n        };\n\n        updateTableConfigs();\n\n        const updateWorldInfoBtn = document.getElementById('updateWorldInfoBtn');\n\n        updateWorldInfoBtn.onclick = async () => {\n            updateWorldInfo();\n        };\n\n        async function updateWorldInfo() {\n            const moduleWI = await import('/scripts/world-info.js');\n            const selected_world_info = moduleWI.selected_world_info;\n            let tableWI = \"\";\n            for (const WI of selected_world_info) {\n                if (WI.includes(\"Table\")) {\n                    tableWI = WI;\n                    break;\n                }\n            }\n            if (tableWI === \"\") {\n                let toastMsg = '全局世界书中未找到表格世界书';\n                if (!hasSameToast(toastMsg, toastTitle)) {\n                    toastr.error(toastMsg, toastTitle);\n                }\n                return;\n            }\n            const worldInfo = await moduleWI.loadWorldInfo(tableWI);\n            const entries = worldInfo.entries;\n            let tableConfigEntry = \"\";\n            let tableConfigEntryUID = null;\n            for (var id in entries) {\n                const entry = entries[id];\n                if (entry.comment.includes(\"参数配置\") && !entry.disable) {\n                    tableConfigEntry = entry.content;\n                    tableConfigEntryUID = entry.uid;\n                    break;\n                }\n            }\n            if (tableConfigEntry === \"\") {\n                let toastMsg = '表格世界书中未找到开启的参数配置条目';\n                if (!hasSameToast(toastMsg, toastTitle)) {\n                    toastr.error(toastMsg, toastTitle);\n                }\n                return;\n            }\n            const ifBlockStartIndex = tableConfigEntry.indexOf(\"  setLocalVar\");\n            if (ifBlockStartIndex === -1) return;\n\n            const ifBlockEndIndex = tableConfigEntry.lastIndexOf('}');\n            const ifBlockContent = tableConfigEntry.substring(ifBlockStartIndex, ifBlockEndIndex - 1);\n            let ifBlockContentNew = \"\";\n\n            const lines = ifBlockContent.split('\\n');\n            const setLocalVarRegex = /setLocalVar\\('([^']*?)'/;\n\n            lines.forEach(line => {\n                if (line.trim().startsWith('setLocalVar')) {\n                    const match = line.match(setLocalVarRegex);\n                    if (match) {\n                        const varName = match[1];\n                        let globalVal = String(SillyTavern.variables.local.get(varName));\n                        globalVal = JSON.stringify(globalVal).slice(1, -1);\n                        globalVal = globalVal.replace(/\\'/g, \"\\\\'\").replace(/{{user}}/g, \"{{us'+'er}}\");\n                        ifBlockContentNew = ifBlockContentNew + \"  setLocalVar('\" + varName + \"', '\" + globalVal + \"', { dryRun: true });\\n\";\n                    }\n                    return;\n                }\n                ifBlockContentNew = ifBlockContentNew + line + \"\\n\";\n            });\n            const tableConfigEntryNew = tableConfigEntry.substring(0, ifBlockStartIndex) + ifBlockContentNew + tableConfigEntry.substring(ifBlockEndIndex);\n            globalThis.SillyTavern.getContext().SlashCommandParser.commands['setentryfield'].callback({ file: tableWI, uid: tableConfigEntryUID, field: \"content\" }, tableConfigEntryNew);\n            toastr.success(\"已存储聊天参数到全局\", toastTitle);\n        };\n\n        let sheets = {};\n        for (uid in table) {\n            sheets[table[uid][\"name\"]] = table[uid][\"content\"];\n        }\n        let characters = new Map();\n        sheets[\"近期角色\"]?.forEach((row, index) => {\n            if (index !== 0) {\n                const key = row[1];\n                const val = row[1].includes(user);\n                if (characters.has(key)) {\n                    if (val) {\n                        characters.set(key, true);\n                    }\n                } else {\n                    characters.set(key, val);\n                }\n            }\n        });\n        sheets[\"角色信息\"]?.forEach((row, index) => {\n            if (index != 0) {\n                const key = row[1];\n                const val = row[1].includes(user);\n                if (characters.has(key)) {\n                    if (val) {\n                        characters.set(key, true);\n                    }\n                } else {\n                    characters.set(key, val);\n                }\n            }\n        });\n        let abilities = new Map();\n        sheets[\"特殊能力\"]?.forEach((row, index) => {\n            if (index != 0) {\n                const key = row[1];\n                const val = row[2].includes(user);\n                if (abilities.has(key)) {\n                    if (val) {\n                        abilities.set(key, true);\n                    }\n                } else {\n                    abilities.set(key, val);\n                }\n            }\n        });\n        let items = new Map();\n        sheets[\"重要物品\"]?.forEach((row, index) => {\n            if (index != 0) {\n                const key = row[1];\n                const val = row[2].includes(user) || row[3].includes(user);\n                if (items.has(key)) {\n                    if (val) {\n                        items.set(key, true);\n                    }\n                } else {\n                    items.set(key, val);\n                }\n            }\n        });\n        let organizations = new Map();\n        sheets[\"重要组织\"]?.forEach((row, index) => {\n            if (index != 0) {\n                if (!organizations.has(row[1])) {\n                    organizations.set(row[1], false);\n                }\n            }\n        });\n        let locations = new Map();\n        sheets[\"重要地点\"]?.forEach((row, index) => {\n            if (index != 0) {\n                if (!locations.has(row[1])) {\n                    locations.set(row[1], false);\n                }\n            }\n        });\n        function inputContent(text) {\n            const sendTextarea = document.getElementById(\"send_textarea\");\n            const startPos = sendTextarea.selectionStart;\n            const endPos = sendTextarea.selectionEnd;\n            const value = sendTextarea.value;\n\n            sendTextarea.value = value.substring(0, startPos) + text + value.substring(endPos);\n\n            const newPos = startPos + text.length;\n            sendTextarea.selectionStart = sendTextarea.selectionEnd = newPos;\n            sendTextarea.focus();\n        }\n\n        function sendContent(text) {\n            SillyTavern.executeSlashCommands(\"/send {{input}} \" + text + \" || /trigger\");\n        }\n\n        const buttonMap = {\n            '输入：角色名': { data: characters, action: inputContent, prefix: \"\" },\n            '输入：能力': { data: abilities, action: inputContent, prefix: \"\" },\n            '输入：物品': { data: items, action: inputContent, prefix: \"\" },\n            '输入：组织': { data: organizations, action: inputContent, prefix: \"\" },\n            '输入：地点': { data: locations, action: inputContent, prefix: \"\" },\n            '直接发送：使用能力': { data: abilities, action: sendContent, prefix: \"使用\" },\n            '直接发送：使用物品': { data: items, action: sendContent, prefix: \"使用\" },\n            '直接发送：前往地点': { data: locations, action: sendContent, prefix: \"前往\" }\n        };\n\n        const quickOpContainer = document.querySelector('.quick-operation > details');\n        if (localStorage.getItem('quickOperationsDetailsOpen') !== 'false') {\n            quickOpContainer.open = true;\n        }\n\n        quickOpContainer.addEventListener('toggle', () => {\n            localStorage.setItem('quickOperationsDetailsOpen', quickOpContainer.open);\n        });\n\n        quickOpContainer.innerHTML = \"<summary>快捷操作</summary>\";\n\n        const quickOpGroupContainer = document.createElement('div');\n        quickOpGroupContainer.className = \"quick-operation-group\";\n        quickOpContainer.appendChild(quickOpGroupContainer);\n\n        let isQuickOperationEmpty = true;\n        let detailsIndex = 0;\n        for (const summaryText in buttonMap) {\n            const config = buttonMap[summaryText];\n            if (config && config.data && config.data.size > 0) {\n                isQuickOperationEmpty = false;\n                const details = document.createElement('details');\n                const summary = document.createElement('summary');\n                summary.textContent = summaryText;\n                details.appendChild(summary);\n\n                let isDetailsInit = false;\n                if (localStorage.getItem(`details-${detailsIndex}-open`) !== 'false') {\n                    isDetailsInit = true;\n                    details.open = true;\n                }\n\n                ((index) => {\n                    details.addEventListener('toggle', () => {\n                        localStorage.setItem(`details-${index}-open`, details.open);\n                        if (isDetailsInit) {\n                            isDetailsInit = false;\n                        } else if (details.open) {\n                            document.getElementById('chat').scrollTop += details.offsetHeight;\n                        }\n                    });\n                })(detailsIndex);\n\n                const buttonGroup = document.createElement('div');\n                buttonGroup.className = 'quick-operation-button-group';\n\n                config.data.forEach((value, key) => {\n                    const button = document.createElement('button');\n                    button.textContent = key;\n                    button.onclick = () => config.action(config.prefix + key);\n                    if (value) {\n                        button.classList.add('button-highlight');\n                    }\n                    buttonGroup.appendChild(button);\n                });\n                details.appendChild(buttonGroup);\n                quickOpGroupContainer.appendChild(details);\n            }\n            detailsIndex++;\n        }\n        if (isQuickOperationEmpty) {\n            quickOpGroupContainer.innerHTML = \"表格内暂无快捷操作所需数据\";\n        }\n        updateAutoJump();\n    })();\n</script>\n\n<style>\n    .table-preview-bar {\n        padding: 0 8px;\n        border-radius: 10px;\n        color: var(--SmartThemeEmColor);\n        background-color: var(--SmartThemeBotMesBlurTintColor);\n        font-size: 0.8rem;\n        display: flex;\n        flex-direction: column;\n        max-width: 100%;\n        box-sizing: border-box;\n    }\n\n    .table-preview-bar table {\n        border-collapse: collapse;\n        table-layout: auto;\n    }\n\n    .table-preview-bar th,\n    .table-preview-bar td {\n        padding: 8px;\n        border: 1px solid color-mix(in srgb, var(--SmartThemeBorderColor) 50%, var(--SmartThemeEmColor));\n        text-align: left;\n        white-space: normal;\n        min-width: 0;\n    }\n\n    .insert-item {\n        background-color: #33ff3333;\n    }\n\n    .update-item {\n        background-color: #3333ff33;\n    }\n\n    .delete-item {\n        background-color: #ff333333;\n    }\n\n    .table-preview-bar button {\n        margin: 2px 4px;\n        background-color: var(--SmartThemeBlurTintColor);\n        color: var(--SmartThemeBodyColor);\n        border: 1px solid var(--SmartThemeBorderColor);\n        font-size: 0.9rem;\n    }\n\n    .table-preview-bar button:hover {\n        background-color: color-mix(in srgb, var(--SmartThemeBlurTintColor) 60%, var(--SmartThemeEmColor));\n    }\n\n    .table-preview-bar button.button-highlight {\n        color: var(--SmartThemeQuoteColor);\n        font-weight: bold;\n    }\n\n    .quick-operation-group {\n        display: inline-flex;\n        flex-wrap: wrap;\n        padding: 4px 8px;\n    }\n\n    .quick-operation-group>details {\n        padding-left: 1rem;\n    }\n\n    .quick-operation-group>details[open] {\n        flex-basis: 100%;\n    }\n\n    .quick-operation-group>summary {\n        display: inline-flex;\n        flex-wrap: wrap;\n        padding: 4px 8px;\n        cursor: pointer;\n    }\n\n    .quick-operation-button-group {\n        display: flex;\n        flex-wrap: wrap;\n    }\n</style>",
+    "tableStructure": [
+        {
+            "tableIndex": 0,
+            "tableName": "当前信息",
+            "columns": [
+                "时间",
+                "地点"
+            ],
+            "note": "{{getvar::tableConfigStatusNote}}",
+            "initNode": "{{getvar::tableConfigStatusInit}}",
+            "deleteNode": "禁止删除",
+            "updateNode": "{{getvar::tableConfigStatusUpdate}}",
+            "insertNode": "禁止插入",
+            "config": {
+                "toChat": true,
+                "useCustomStyle": false,
+                "triggerSendToChat": false,
+                "alternateTable": false,
+                "insertTable": false,
+                "alternateLevel": 0,
+                "skipTop": false,
+                "selectedCustomStyleKey": "",
+                "customStyles": {
+                    "自定义样式": {
+                        "mode": "regex",
+                        "basedOn": "html",
+                        "regex": "/(^[\\s\\S]*$)/g",
+                        "replace": "$1",
+                        "replaceDivide": ""
+                    }
+                }
+            },
+            "Required": true,
+            "tochat": true,
+            "enable": true,
+            "triggerSend": false,
+            "triggerSendDeep": 1
+        },
+        {
+            "tableIndex": 1,
+            "tableName": "近期角色",
+            "columns": [
+                "角色名",
+                "离场轮数",
+                "即时目标",
+                "位置",
+                "姿势",
+                "身体状态",
+                "服装",
+                "特殊状态"
+            ],
+            "note": "{{getvar::tableConfigRecentNote}}",
+            "initNode": "{{getvar::tableConfigRecentInit}}",
+            "deleteNode": "{{getvar::tableConfigRecentDelete}}",
+            "updateNode": "{{getvar::tableConfigRecentUpdate}}",
+            "insertNode": "{{getvar::tableConfigRecentInsert}}",
+            "config": {
+                "toChat": true,
+                "useCustomStyle": false,
+                "triggerSendToChat": false,
+                "alternateTable": false,
+                "insertTable": false,
+                "alternateLevel": 0,
+                "skipTop": false,
+                "selectedCustomStyleKey": "",
+                "customStyles": {
+                    "自定义样式": {
+                        "mode": "regex",
+                        "basedOn": "html",
+                        "regex": "/(^[\\s\\S]*$)/g",
+                        "replace": "$1",
+                        "replaceDivide": ""
+                    }
+                }
+            },
+            "Required": true,
+            "tochat": true,
+            "enable": true,
+            "triggerSend": false,
+            "triggerSendDeep": 1
+        },
+        {
+            "tableIndex": 2,
+            "tableName": "角色信息",
+            "columns": [
+                "角色名",
+                "性别",
+                "年龄",
+                "身份",
+                "身体特征",
+                "服装偏好风格",
+                "性格",
+                "喜好",
+                "长期目标",
+                "关系（是<user>的——）",
+                "对<user>态度",
+                "角色间重要关系",
+                "重要背景设定",
+                "重要备注"
+            ],
+            "note": "{{getvar::tableConfigCharacterNote}}",
+            "initNode": "{{getvar::tableConfigCharacterInit}}",
+            "deleteNode": "{{getvar::tableConfigCharacterDelete}}",
+            "updateNode": "{{getvar::tableConfigCharacterUpdate}}",
+            "insertNode": "{{getvar::tableConfigCharacterInsert}}",
+            "config": {
+                "toChat": true,
+                "useCustomStyle": false,
+                "triggerSendToChat": false,
+                "alternateTable": false,
+                "insertTable": false,
+                "alternateLevel": 0,
+                "skipTop": false,
+                "selectedCustomStyleKey": "",
+                "customStyles": {
+                    "自定义样式": {
+                        "mode": "regex",
+                        "basedOn": "html",
+                        "regex": "/(^[\\s\\S]*$)/g",
+                        "replace": "$1",
+                        "replaceDivide": ""
+                    }
+                }
+            },
+            "Required": true,
+            "tochat": true,
+            "enable": true,
+            "triggerSend": false,
+            "triggerSendDeep": 1
+        },
+        {
+            "tableIndex": 3,
+            "tableName": "性爱信息",
+            "columns": [
+                "角色名",
+                "相对敏感身体部位",
+                "初体验",
+                "擅长性爱技巧",
+                "隐私部位细节",
+                "近期性爱对象",
+                "重要备注"
+            ],
+            "note": "{{getvar::tableConfigSexNote}}",
+            "initNode": "",
+            "deleteNode": "{{getvar::tableConfigSexDelete}}",
+            "updateNode": "{{getvar::tableConfigSexUpdate}}",
+            "insertNode": "{{getvar::tableConfigSexInsert}}",
+            "config": {
+                "toChat": true,
+                "useCustomStyle": false,
+                "triggerSendToChat": false,
+                "alternateTable": false,
+                "insertTable": false,
+                "alternateLevel": 0,
+                "skipTop": false,
+                "selectedCustomStyleKey": "",
+                "customStyles": {
+                    "自定义样式": {
+                        "mode": "regex",
+                        "basedOn": "html",
+                        "regex": "/(^[\\s\\S]*$)/g",
+                        "replace": "$1",
+                        "replaceDivide": ""
+                    }
+                }
+            },
+            "Required": false,
+            "tochat": true,
+            "enable": true,
+            "triggerSend": false,
+            "triggerSendDeep": 1
+        },
+        {
+            "tableIndex": 4,
+            "tableName": "日程",
+            "columns": [
+                "概要",
+                "整体内容",
+                "当前进度",
+                "执行人",
+                "委托人",
+                "完成奖励",
+                "地点",
+                "起始时间",
+                "结束或限制时间",
+                "重要备注"
+            ],
+            "note": "{{getvar::tableConfigScheduleNote}}",
+            "initNode": "",
+            "deleteNode": "{{getvar::tableConfigScheduleDelete}}",
+            "updateNode": "{{getvar::tableConfigScheduleUpdate}}",
+            "insertNode": "{{getvar::tableConfigScheduleInsert}}",
+            "config": {
+                "toChat": true,
+                "useCustomStyle": false,
+                "triggerSendToChat": false,
+                "alternateTable": false,
+                "insertTable": false,
+                "alternateLevel": 0,
+                "skipTop": false,
+                "selectedCustomStyleKey": "",
+                "customStyles": {
+                    "自定义样式": {
+                        "mode": "regex",
+                        "basedOn": "html",
+                        "regex": "/(^[\\s\\S]*$)/g",
+                        "replace": "$1",
+                        "replaceDivide": ""
+                    }
+                }
+            },
+            "Required": false,
+            "tochat": true,
+            "enable": true,
+            "triggerSend": false,
+            "triggerSendDeep": 1
+        },
+        {
+            "tableIndex": 5,
+            "tableName": "特殊能力",
+            "columns": [
+                "能力",
+                "拥有人",
+                "作用",
+                "限制",
+                "重要备注"
+            ],
+            "note": "{{getvar::tableConfigAbilityNote}}",
+            "initNode": "",
+            "deleteNode": "{{getvar::tableConfigAbilityDelete}}",
+            "updateNode": "{{getvar::tableConfigAbilityUpdate}}",
+            "insertNode": "{{getvar::tableConfigAbilityInsert}}",
+            "config": {
+                "toChat": true,
+                "useCustomStyle": false,
+                "triggerSendToChat": false,
+                "alternateTable": false,
+                "insertTable": false,
+                "alternateLevel": 0,
+                "skipTop": false,
+                "selectedCustomStyleKey": "",
+                "customStyles": {
+                    "自定义样式": {
+                        "mode": "regex",
+                        "basedOn": "html",
+                        "regex": "/(^[\\s\\S]*$)/g",
+                        "replace": "$1",
+                        "replaceDivide": ""
+                    }
+                }
+            },
+            "Required": false,
+            "tochat": true,
+            "enable": true,
+            "triggerSend": false,
+            "triggerSendDeep": 1
+        },
+        {
+            "tableIndex": 6,
+            "tableName": "重要物品",
+            "columns": [
+                "物品",
+                "拥有人",
+                "所在位置",
+                "数量",
+                "形态",
+                "作用",
+                "限制",
+                "重要备注"
+            ],
+            "note": "{{getvar::tableConfigItemNote}}",
+            "initNode": "",
+            "deleteNode": "{{getvar::tableConfigItemDelete}}",
+            "updateNode": "{{getvar::tableConfigItemUpdate}}",
+            "insertNode": "{{getvar::tableConfigItemInsert}}",
+            "config": {
+                "toChat": true,
+                "useCustomStyle": false,
+                "triggerSendToChat": false,
+                "alternateTable": false,
+                "insertTable": false,
+                "alternateLevel": 0,
+                "skipTop": false,
+                "selectedCustomStyleKey": "",
+                "customStyles": {
+                    "自定义样式": {
+                        "mode": "regex",
+                        "basedOn": "html",
+                        "regex": "/(^[\\s\\S]*$)/g",
+                        "replace": "$1",
+                        "replaceDivide": ""
+                    }
+                }
+            },
+            "Required": false,
+            "tochat": true,
+            "enable": true,
+            "triggerSend": false,
+            "triggerSendDeep": 1
+        },
+        {
+            "tableIndex": 7,
+            "tableName": "重要组织",
+            "columns": [
+                "组织",
+                "已知成员架构",
+                "成员特征",
+                "宗旨",
+                "重要备注"
+            ],
+            "note": "{{getvar::tableConfigOrganizationNote}}",
+            "initNode": "",
+            "deleteNode": "{{getvar::tableConfigOrganizationDelete}}",
+            "updateNode": "{{getvar::tableConfigOrganizationUpdate}}",
+            "insertNode": "{{getvar::tableConfigOrganizationInsert}}",
+            "config": {
+                "toChat": true,
+                "useCustomStyle": false,
+                "triggerSendToChat": false,
+                "alternateTable": false,
+                "insertTable": false,
+                "alternateLevel": 0,
+                "skipTop": false,
+                "selectedCustomStyleKey": "",
+                "customStyles": {
+                    "自定义样式": {
+                        "mode": "regex",
+                        "basedOn": "html",
+                        "regex": "/(^[\\s\\S]*$)/g",
+                        "replace": "$1",
+                        "replaceDivide": ""
+                    }
+                }
+            },
+            "Required": false,
+            "tochat": true,
+            "enable": true,
+            "triggerSend": false,
+            "triggerSendDeep": 1
+        },
+        {
+            "tableIndex": 8,
+            "tableName": "重要地点",
+            "columns": [
+                "地点",
+                "所在位置",
+                "空间结构",
+                "重要备注"
+            ],
+            "note": "{{getvar::tableConfigLocationNote}}",
+            "initNode": "",
+            "deleteNode": "{{getvar::tableConfigLocationDelete}}",
+            "updateNode": "{{getvar::tableConfigLocationUpdate}}",
+            "insertNode": "{{getvar::tableConfigLocationInsert}}",
+            "config": {
+                "toChat": true,
+                "useCustomStyle": false,
+                "triggerSendToChat": false,
+                "alternateTable": false,
+                "insertTable": false,
+                "alternateLevel": 0,
+                "skipTop": false,
+                "selectedCustomStyleKey": "",
+                "customStyles": {
+                    "自定义样式": {
+                        "mode": "regex",
+                        "basedOn": "html",
+                        "regex": "/(^[\\s\\S]*$)/g",
+                        "replace": "$1",
+                        "replaceDivide": ""
+                    }
+                }
+            },
+            "Required": false,
+            "tochat": true,
+            "enable": true,
+            "triggerSend": false,
+            "triggerSendDeep": 1
+        },
+        {
+            "tableIndex": 9,
+            "tableName": "大总结",
+            "columns": [
+                "时间范围",
+                "内容"
+            ],
+            "note": "{{getvar::tableConfigSummaryNote}}",
+            "initNode": "",
+            "deleteNode": "禁止删除",
+            "updateNode": "禁止更新",
+            "insertNode": "{{getvar::tableConfigSummaryInsert}}",
+            "config": {
+                "toChat": false,
+                "useCustomStyle": false,
+                "triggerSendToChat": false,
+                "alternateTable": false,
+                "insertTable": false,
+                "alternateLevel": 0,
+                "skipTop": false,
+                "selectedCustomStyleKey": "",
+                "customStyles": {
+                    "自定义样式": {
+                        "mode": "regex",
+                        "basedOn": "html",
+                        "regex": "/(^[\\s\\S]*$)/g",
+                        "replace": "$1",
+                        "replaceDivide": ""
+                    }
+                }
+            },
+            "Required": false,
+            "tochat": false,
+            "enable": true,
+            "triggerSend": false,
+            "triggerSendDeep": 1
+        },
+        {
+            "tableIndex": 10,
+            "tableName": "事件历史",
+            "columns": [
+                "时间",
+                "地点",
+                "事件"
+            ],
+            "note": "{{getvar::tableConfigHistoryNote}}",
+            "initNode": "",
+            "deleteNode": "仅限用户在<user_request>中要求大总结时全部逆序删除",
+            "updateNode": "禁止更新",
+            "insertNode": "{{getvar::tableConfigHistoryInsert}}",
+            "config": {
+                "toChat": true,
+                "useCustomStyle": false,
+                "triggerSendToChat": false,
+                "alternateTable": false,
+                "insertTable": false,
+                "alternateLevel": 0,
+                "skipTop": false,
+                "selectedCustomStyleKey": "",
+                "customStyles": {
+                    "自定义样式": {
+                        "mode": "regex",
+                        "basedOn": "html",
+                        "regex": "/(^[\\s\\S]*$)/g",
+                        "replace": "$1",
+                        "replaceDivide": ""
+                    }
+                }
+            },
+            "Required": false,
+            "tochat": false,
+            "enable": true,
+            "triggerSend": false,
+            "triggerSendDeep": 1
+        },
+        {
+            "tableIndex": 11,
+            "tableName": "重要指引",
+            "columns": [
+                "内容"
+            ],
+            "note": "{{getvar::tableConfigGuidelineNote}}",
+            "initNode": "",
+            "deleteNode": "禁止删除",
+            "updateNode": "禁止更新",
+            "insertNode": "禁止插入",
+            "config": {
+                "toChat": false,
+                "useCustomStyle": false,
+                "triggerSendToChat": false,
+                "alternateTable": false,
+                "insertTable": false,
+                "alternateLevel": 0,
+                "skipTop": false,
+                "selectedCustomStyleKey": "",
+                "customStyles": {
+                    "自定义样式": {
+                        "mode": "regex",
+                        "basedOn": "html",
+                        "regex": "/(^[\\s\\S]*$)/g",
+                        "replace": "$1",
+                        "replaceDivide": ""
+                    }
+                }
+            },
+            "Required": false,
+            "tochat": false,
+            "enable": true,
+            "triggerSend": false,
+            "triggerSendDeep": 1
+        }
+    ]
+}

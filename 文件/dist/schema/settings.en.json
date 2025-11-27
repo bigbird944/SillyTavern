@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "user_name": {
+      "type": "string",
+      "pattern": "^\\S+$"
+    },
+    "configs": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "worldbook",
+              "preset"
+            ]
+          },
+          "name": {
+            "description": "世界书/预设在酒馆中的名称",
+            "type": "string"
+          },
+          "file": {
+            "description": "世界书/预设的配置文件要提取到本地哪个文件中, 可以是绝对路径或相对于本文件的相对路径",
+            "type": "string",
+            "pattern": "^(?:(?:[a-zA-Z]:|\\.|\\.\\.)?([\\\\/][^\\\\/]+)*|[^\\\\/]+)$"
+          },
+          "export_file": {
+            "description": "当使用 `node tavern_sync.mjs push 配置名称 -e` 导出能直接由酒馆界面导入的世界书/预设文件时, 要将它存放在哪个文件中; 不填则默认导出到世界书/预设配置文件的同目录下",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "name",
+          "file"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "user_name",
+    "configs"
+  ],
+  "additionalProperties": false
+}
