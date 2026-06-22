@@ -1,5 +1,17 @@
 {
-    "projects": {},
+    "projects": {
+        "魅魔婊子后宫": {
+            "state_file": "cards/魅魔婊子后宫/tavern-cards-state.json",
+            "artifact": "cards/魅魔婊子后宫/魅魔婊子后宫.png"
+        },
+        "全能工匠": {
+            "state_file": "cards/全能工匠/tavern-cards-state.json",
+            "artifact": "cards/全能工匠/全能工匠.json",
+            "archived": true,
+            "archived_date": "2026-06-22",
+            "archived_reason": "项目范围超出当前AI技术能力边界"
+        }
+    },
     "default_part_order": {
         "角色": [
             "basic",
